@@ -1,0 +1,9 @@
+{
+  "name": "business-play",
+  "private": true,
+  "description": "«Своё дело» — мобильный бизнес-тренажёр с живым ИИ",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "icons": "node scripts/make-icons.mjs"
+  }
+}

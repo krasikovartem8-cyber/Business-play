@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Своё дело">
+<meta name="description" content="Своё дело — бизнес-симулятор-тренажёр: выбери бизнес и вырасти его от нуля до корпорации своими решениями.">
+<title>Своё дело</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+    --bg: #0b0d1a; --card: rgba(255,255,255,.06); --line: rgba(255,255,255,.12);
+    --txt: #f4f5fb; --muted: rgba(244,245,251,.6);
+    --gold: #ffd166; --green: #6ee7b7; --red: #ff7b9c; --blue: #7ee8ff; --violet: #b69cff; --orange: #ffb17a;
+    --font: "Inter", -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt); font-family: var(--font); overflow: hidden; -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+  button { font-family: var(--font); color: inherit; }
+  input, textarea { font-family: var(--font); }
+
+  /* ---------- Фон ---------- */
+  #bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 0%, #161a33 0%, var(--bg) 60%); }
+  #bg i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; animation: drift 18s ease-in-out infinite alternate; }
+  #bg i:nth-child(1) { width: 60vmax; height: 60vmax; left: -20vmax; top: -10vmax; background: #4c3bd6; }
+  #bg i:nth-child(2) { width: 50vmax; height: 50vmax; right: -20vmax; top: 30vh; background: #0ea5c9; animation-delay: -6s; animation-duration: 22s; }
+  #bg i:nth-child(3) { width: 45vmax; height: 45vmax; left: 10vw; bottom: -25vmax; background: #d6467a; animation-delay: -12s; animation-duration: 26s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(8vw, 6vh) scale(1.15); } }
+  #fx { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+
+  /* ---------- Экраны ---------- */
+  .screen { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; padding: calc(var(--sat) + 16px) 18px calc(var(--sab) + 18px); overflow-y: auto; -webkit-overflow-scrolling: touch; transition: opacity .35s ease, transform .35s ease; }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: translateY(16px); }
+  .screen > * { flex-shrink: 0; }
+  .center { justify-content: center; align-items: center; text-align: center; }
+
+  .logo { font-size: clamp(38px, 11vw, 60px); font-weight: 800; letter-spacing: -.02em; line-height: 1; background: linear-gradient(120deg, #fff 0%, var(--gold) 50%, var(--orange) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 30px rgba(255,209,102,.25)); }
+  .logo small { display: block; font-size: 13px; letter-spacing: .4em; text-transform: uppercase; font-weight: 600; color: var(--muted); -webkit-text-fill-color: var(--muted); margin-bottom: 10px; }
+  .tag { margin-top: 16px; max-width: 320px; color: var(--muted); line-height: 1.55; font-size: 15px; }
+  .pill { margin-top: 14px; padding: 16px 36px; border-radius: 999px; border: 0; font-size: 15px; font-weight: 700; letter-spacing: .04em; cursor: pointer; background: linear-gradient(120deg, var(--gold), var(--orange)); color: #1a1200; box-shadow: 0 10px 30px rgba(255,177,122,.35); transition: transform .12s ease; }
+  .pill:active { transform: scale(.96); }
+  .pill.ghost { background: rgba(255,255,255,.08); color: #fff; box-shadow: none; border: 1px solid var(--line); }
+  .pill[disabled] { opacity: .4; pointer-events: none; }
+
+  /* ---------- Выбор бизнеса ---------- */
+  h2 { margin: 6px 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 14px; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .biz { text-align: left; padding: 14px 12px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); cursor: pointer; transition: transform .12s ease, border-color .2s, background .2s; position: relative; overflow: hidden; }
+  .biz:active { transform: scale(.97); }
+  .biz.sel { border-color: var(--gold); background: rgba(255,209,102,.12); box-shadow: 0 0 0 1px var(--gold) inset, 0 8px 30px rgba(255,209,102,.15); }
+  .biz .e { font-size: 30px; line-height: 1; }
+  .biz b { display: block; margin-top: 8px; font-size: 14px; }
+  .biz span { display: block; margin-top: 3px; font-size: 11px; color: var(--muted); }
+  .field { margin-top: 14px; }
+  .field label { display: block; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field textarea { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: #fff; font-size: 16px; outline: none; resize: none; }
+  .field input:focus, .field textarea:focus { border-color: var(--gold); }
+  .bottom { margin-top: 18px; padding-bottom: 8px; display: flex; gap: 10px; }
+  .bottom .pill { flex: 1; margin-top: 0; }
+
+  /* ---------- Игра ---------- */
+  #s-game { padding-top: calc(var(--sat) + 10px); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .top .co { min-width: 0; }
+  .top .co b { display: block; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top .co span { font-size: 12px; color: var(--muted); }
+  .stagechip { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+  .ibtn { width: 40px; height: 40px; border-radius: 13px; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; cursor: pointer; font-size: 18px; flex: none; }
+  .ibtn:active { transform: scale(.92); }
+  .stageline { margin: 12px 0 8px; display: flex; gap: 4px; }
+  .stageline i { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.12); }
+  .stageline i.on { background: linear-gradient(90deg, var(--gold), var(--orange)); box-shadow: 0 0 10px rgba(255,209,102,.6); }
+  .city { position: relative; margin-top: 10px; border-radius: 20px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+  .city canvas { display: block; width: 100%; height: 200px; touch-action: manipulation; }
+  .cityhint { position: absolute; left: 10px; bottom: 5px; font-size: 10px; letter-spacing: .05em; color: rgba(255,255,255,.55); pointer-events: none; }
+  .money { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; }
+  .money b { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .money b.neg { color: var(--red); }
+  .money span { font-size: 12px; color: var(--muted); }
+  .money em { font-style: normal; font-size: 13px; color: var(--green); }
+  .money em.neg { color: var(--red); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .st { padding: 8px 9px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+  .st .l { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+  .st .l b { color: #fff; }
+  .st .bar { margin-top: 6px; height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .st .bar i { display: block; height: 100%; width: 50%; border-radius: 6px; transition: width .6s cubic-bezier(.2,.9,.3,1); }
+  .st.demand i { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+  .st.rep i { background: var(--violet); box-shadow: 0 0 8px var(--violet); }
+  .st.team i { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .st.energy i { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+  .st.low i { background: var(--red) !important; box-shadow: 0 0 8px var(--red) !important; animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .5; } }
+
+  .card { margin-top: 14px; padding: 20px 18px; border-radius: 24px; background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 20px 60px rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); animation: cardIn .45s cubic-bezier(.2,.9,.3,1); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+  .card .kicker { font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .card .kicker.ai { color: var(--blue); }
+  .card h3 { margin: 6px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+  .card p { margin: 0; color: rgba(244,245,251,.85); line-height: 1.55; font-size: 15px; }
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .choice { text-align: left; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.07); font-size: 15px; font-weight: 600; cursor: pointer; transition: transform .12s ease, background .2s; display: flex; align-items: center; gap: 12px; animation: cardIn .5s both; }
+  .choice:nth-child(2) { animation-delay: .07s; } .choice:nth-child(3) { animation-delay: .14s; }
+  .choice:active { transform: scale(.98); background: rgba(255,255,255,.14); }
+  .choice .n { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.12); display: grid; place-items: center; font-size: 12px; flex: none; }
+  .choice.go { border-color: var(--gold); background: rgba(255,209,102,.14); }
+
+  .result .fxs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip { padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); border: 1px solid var(--line); }
+  .chip.up { color: var(--green); } .chip.down { color: var(--red); }
+  .lesson { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255,209,102,.1); border: 1px solid rgba(255,209,102,.3); font-size: 14px; line-height: 1.5; }
+  .lesson b { color: var(--gold); display: block; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; margin-bottom: 4px; }
+  .report { margin-top: 14px; padding: 14px; border-radius: 16px; background: rgba(0,0,0,.25); border: 1px solid var(--line); }
+  .report .row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+  .report .row.total { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; font-weight: 800; }
+  .report .row span:last-child { font-variant-numeric: tabular-nums; }
+  .advisor { margin-top: 12px; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; color: rgba(244,245,251,.85); }
+  .advisor .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--violet)); display: grid; place-items: center; flex: none; font-size: 16px; }
+  .next { margin-top: 16px; width: 100%; padding: 16px; border-radius: 16px; border: 0; background: linear-gradient(120deg, var(--gold), var(--orange)); color: #1a1200; font-weight: 800; font-size: 15px; cursor: pointer; }
+  .next:active { transform: scale(.98); }
+  .thinking { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 30px; color: var(--muted); font-size: 14px; }
+  .thinking i { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); animation: bounce 1s ease-in-out infinite; }
+  .thinking i:nth-child(2) { animation-delay: .15s; } .thinking i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 50% { transform: translateY(-6px); opacity: .5; } }
+
+  /* ---------- Модалки ---------- */
+  .modal { position: fixed; inset: 0; z-index: 20; background: rgba(5,6,14,.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: flex-end; justify-content: center; transition: opacity .3s ease; }
+  .modal.hidden { opacity: 0; pointer-events: none; }
+  .sheet { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: #141731; border-radius: 26px 26px 0 0; padding: 18px 18px calc(var(--sab) + 20px); border-top: 1px solid var(--line); transform: translateY(0); transition: transform .35s cubic-bezier(.2,.9,.3,1); }
+  .modal.hidden .sheet { transform: translateY(40px); }
+  .sheet h3 { margin: 4px 0 10px; font-size: 20px; }
+  .sheet .x { position: absolute; right: 16px; top: 14px; }
+  .jl { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+  .jl b { display: block; font-size: 12px; color: var(--gold); margin-bottom: 3px; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  .sw { width: 50px; height: 30px; border-radius: 30px; background: rgba(255,255,255,.15); position: relative; border: 0; cursor: pointer; transition: background .2s; }
+  .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
+  .sw.on { background: var(--green); } .sw.on::after { transform: translateX(20px); }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .stage-big { font-size: 72px; line-height: 1; animation: pop .6s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--sab) + 24px); transform: translateX(-50%); z-index: 60; padding: 12px 18px; border-radius: 14px; background: #1f2340; border: 1px solid var(--line); font-size: 13px; max-width: 90vw; text-align: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .endstats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; width: 100%; max-width: 360px; }
+  .endstats div { padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+  .endstats span { display: block; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+  .endstats b { font-size: 20px; }
+</style>
+</head>
+<body>
+<div id="bg"><i></i><i></i><i></i></div>
+<canvas id="fx"></canvas>
+
+<!-- Старт -->
+<section id="s-start" class="screen center">
+  <div class="logo"><small>бизнес-тренажёр</small>СВОЁ ДЕЛО</div>
+  <div class="tag">Выбери бизнес и вырасти его от нуля до корпорации. Каждое решение меняет историю — своя дорога у каждого игрока.</div>
+  <button class="pill" id="btnNew">Начать своё дело</button>
+  <button class="pill ghost hidden" id="btnContinue">Продолжить</button>
+  <div class="note" style="margin-top:26px;max-width:300px">Ситуации подбирает встроенный режиссёр под твои решения. В настройках можно подключить живой ИИ Claude — тогда каждую ситуацию он придумает с нуля именно под твой бизнес.</div>
+</section>
+
+<!-- Выбор бизнеса -->
+<section id="s-pick" class="screen hidden">
+  <h2>Чем займёмся?</h2>
+  <div class="sub">Каждый бизнес играется по-своему: у кофейни одни проблемы, у IT-студии другие.</div>
+  <div class="grid" id="bizGrid"></div>
+  <div class="field hidden" id="customField"><label>Опиши свой бизнес</label><textarea id="customText" rows="2" placeholder="Например: мастерская по ремонту велосипедов в спальном районе"></textarea></div>
+  <div class="field"><label>Название компании</label><input id="coName" maxlength="32" placeholder="Например: «Утро» или «Ласточка»"></div>
+  <div class="bottom"><button class="pill ghost" id="btnBack">Назад</button><button class="pill" id="btnStart" disabled>Открыть бизнес</button></div>
+</section>
+
+<!-- Игра -->
+<section id="s-game" class="screen hidden">
+  <div class="top">
+    <div class="co"><b id="coTitle">—</b><span id="coSub">—</span></div>
+    <div class="stagechip" id="stageChip">🌱 Стартап</div>
+    <button class="ibtn" id="btnJournal" title="Дневник уроков">📒</button>
+    <button class="ibtn" id="btnSettings" title="Настройки">⚙️</button>
+  </div>
+  <div class="stageline" id="stageLine"></div>
+  <div class="city"><canvas id="city"></canvas><div class="cityhint">нажми на здание, человечка или конкурента</div></div>
+  <div class="money"><div><b id="cash">0 ₽</b><br><span>на счёте</span></div><div style="text-align:right"><em id="profit">+0</em><br><span>прибыль за месяц</span></div></div>
+  <div class="stats">
+    <div class="st demand"><div class="l">Спрос <b>50</b></div><div class="bar"><i></i></div></div>
+    <div class="st rep"><div class="l">Репутация <b>50</b></div><div class="bar"><i></i></div></div>
+    <div class="st team"><div class="l">Команда <b>50</b></div><div class="bar"><i></i></div></div>
+    <div class="st energy"><div class="l">Энергия <b>50</b></div><div class="bar"><i></i></div></div>
+  </div>
+  <div id="cardArea"></div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- Финал -->
+<section id="s-end" class="screen center hidden">
+  <div class="stage-big" id="endIcon">🏁</div>
+  <h2 id="endTitle">Конец истории</h2>
+  <div class="tag" id="endText"></div>
+  <div class="endstats">
+    <div><span>месяцев</span><b id="endMonths">0</b></div>
+    <div><span>уровень</span><b id="endStage">—</b></div>
+    <div><span>выручка всего</span><b id="endRevenue">0</b></div>
+    <div><span>уроков</span><b id="endLessons">0</b></div>
+  </div>
+  <button class="pill" id="btnRestart">Начать новое дело</button>
+  <button class="pill ghost" id="btnEndJournal">Перечитать уроки</button>
+</section>
+
+<!-- Дневник -->
+<div class="modal hidden" id="m-journal"><div class="sheet"><button class="ibtn x" data-close="m-journal">✕</button><h3>📒 Дневник предпринимателя</h3><div class="note">Уроки, которые вы уже вынесли из своих решений.</div><div id="journalList"></div></div></div>
+
+<!-- Настройки -->
+<div class="modal hidden" id="m-settings"><div class="sheet"><button class="ibtn x" data-close="m-settings">✕</button>
+  <h3>⚙️ Настройки</h3>
+  <div class="toggle"><div><b>Живой ИИ (Claude)</b><div class="note">Каждую ситуацию придумывает нейросеть под ваш бизнес и историю решений.</div></div><button class="sw" id="swAI"></button></div>
+  <div class="field"><label>API-ключ Anthropic</label><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"></div>
+  <div class="note" style="margin-top:8px">Ключ хранится только в этом браузере и отправляется напрямую в Anthropic. Получить: console.anthropic.com. Без ключа работает встроенный режиссёр ситуаций.</div>
+  <div class="toggle" style="margin-top:6px"><div><b>Звук</b></div><button class="sw on" id="swSound"></button></div>
+  <button class="pill ghost" id="btnReset" style="width:100%;margin-top:14px">Сбросить игру и начать заново</button>
+</div></div>
+
+<!-- Новый уровень -->
+<div class="modal hidden" id="m-stage"><div class="sheet" style="text-align:center">
+  <div class="stage-big" id="stageIcon">🏪</div>
+  <div class="kicker" style="color:var(--gold);font-size:11px;letter-spacing:.25em;text-transform:uppercase;font-weight:700;margin-top:10px">новый уровень</div>
+  <h3 id="stageName">Малый бизнес</h3>
+  <div class="note" id="stageDesc"></div>
+  <button class="pill" data-close="m-stage" style="margin-top:20px">Дальше</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="content.js"></script>
+<script src="city.js"></script>
+<script>
+(() => {
+'use strict';
+const C = window.DELO_CONTENT;
+const API = { quiet: false };
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = () => Math.random();
+const pick = arr => arr[Math.floor(rnd() * arr.length)];
+
+const PLACE = { cafe: 'кофейню', hostel: 'хостел', shop: 'склад', barber: 'салон', it: 'офис', delivery: 'кухню и склад', fitness: 'зал', bakery: 'пекарню', auto: 'мастерскую', school: 'студию и платформу', custom: 'помещение' };
+
+/* ---------- Форматирование ---------- */
+function money(n) {
+  const a = Math.abs(n), sign = n < 0 ? '−' : '';
+  if (a >= 1e9) return sign + (a / 1e9).toFixed(2).replace('.', ',') + ' млрд ₽';
+  if (a >= 1e6) return sign + (a / 1e6).toFixed(1).replace('.', ',') + ' млн ₽';
+  if (a >= 1e3) return sign + Math.round(a / 1e3) + ' тыс ₽';
+  return sign + Math.round(a) + ' ₽';
+}
+const monthName = m => ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][(m - 1) % 12];
+const yearOf = m => Math.floor((m - 1) / 12) + 1;
+
+/* ---------- Звук ---------- */
+const Sound = { ctx: null, on: true,
+  init() { if (this.ctx) return; try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} },
+  play(freqs, dur = .18, type = 'sine', vol = .18) {
+    if (!this.on) return; this.init(); if (!this.ctx) return; if (this.ctx.state === 'suspended') this.ctx.resume();
+    freqs.forEach((f, i) => { const t = this.ctx.currentTime + i * .08; const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + dur + .05); });
+  },
+  tap() { this.play([520], .12); }, good() { this.play([523, 659, 784], .25); }, bad() { this.play([330, 262], .3, 'triangle'); },
+  stage() { this.play([523, 659, 784, 1047, 1319], .6); },
+};
+const haptic = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+/* ---------- Сохранение ---------- */
+const SAVE_KEY = 'delo.save.v1', SET_KEY = 'delo.settings.v1';
+const Settings = { ai: false, apiKey: '', sound: true };
+try { Object.assign(Settings, JSON.parse(localStorage.getItem(SET_KEY) || '{}')); } catch (e) {}
+const saveSettings = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) {} };
+let G = null;
+const save = () => { try { if (G) localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} };
+const loadSave = () => { try { const r = localStorage.getItem(SAVE_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
+
+/* ---------- Экономика ---------- */
+const biz = () => C.BUSINESSES.find(b => b.id === G.biz);
+const stage = () => C.STAGES[G.stage];
+const scale = () => stage().scale;
+const M = () => biz().fixed * Math.pow(scale(), 0.92);            // постоянные расходы в месяц
+const expansionCost = () => G.stage >= 5 ? Infinity : biz().fixed * stage().cost;
+
+function economy() {
+  const b = biz();
+  const customers = Math.round(b.customers * 0.78 * scale() * (0.3 + G.demand / 100 * 1.4));
+  const priceMult = (G.flags.price_up ? 1.1 : 1) * (0.85 + G.rep / 100 * 0.3);
+  const revenue = Math.round(customers * b.check * priceMult);
+  let expenses = M() * (1 + (G.stage >= 2 ? 0.05 : 0));
+  if (G.flags.lease) expenses += M() * 0.05;
+  if (G.flags.manager) expenses += M() * 0.08;
+  expenses = Math.round(expenses * (1.1 - G.team / 100 * 0.2));       // сильная команда работает эффективнее
+  return { customers, revenue, expenses, profit: revenue - expenses };
+}
+
+/* ---------- Новая игра ---------- */
+function newGame(bizId, name, custom) {
+  const b = C.BUSINESSES.find(x => x.id === bizId);
+  G = { biz: bizId, custom: custom || '', name, cash: b.cash, demand: 42, rep: 45, team: 15, energy: 90, stage: 0, month: 1,
+    flags: {}, used: [], once: [], queue: [], history: [], lessons: [], negMonths: 0, last: null, current: null, phase: 'choose',
+    totalRevenue: 0, aiUsed: 0, ended: null };
+  G.current = pickScenario();
+  save();
+}
+
+/* ---------- Режиссёр ---------- */
+function allScenarios() { return [...C.SCENARIOS, ...(C.BIZ[G.biz] || [])]; }
+function findScenario(id) { return allScenarios().find(s => s.id === id) || C.CRISIS[id]; }
+function fill(t) {
+  const b = biz();
+  return (t || '').replace(/\{name\}/g, G.name).replace(/\{place\}/g, PLACE[G.biz] || 'помещение').replace(/\{biz\}/g, G.custom || b.name.toLowerCase()).replace(/\{cost\}/g, money(expansionCost()));
+}
+
+function expansionScenario() {
+  const e = C.EXPANSIONS[G.stage], cost = expansionCost();
+  return { id: 'expand_' + G.stage, title: e.title, text: e.text, kind: 'expand',
+    choices: [
+      { t: e.go + ' (' + money(cost) + ')', go: true, fx: { cashAbs: -cost, team: -10, energy: -12, demand: 6, rep: 3 }, stageUp: true, res: 'Решение принято. Впереди новый масштаб и новые правила игры.', lesson: e.lesson },
+      { t: 'Подождать полгода', fx: { energy: 3 }, flag: 'exp_wait', res: 'Вы решили укрепиться на текущем уровне.', lesson: 'Рост раньше времени ломает то, что работает. Расширяйтесь, когда процессы выдерживают нагрузку без вас.' },
+      { t: 'Вложить половину в маркетинг', fx: { cashAbs: -cost / 2, demand: 16, rep: 2 }, res: 'Вы выбрали спрос вместо масштаба. Клиентов стало заметно больше.', lesson: 'Иногда лучший рост — загрузить то, что уже есть, а не строить новое.' },
+    ] };
+}
+
+function pickScenario() {
+  if (G.cash < 0) return { ...C.CRISIS.bankrupt_warning, kind: 'crisis' };
+  if (G.energy <= 5) return { ...findScenario('burnout'), kind: 'crisis' };
+  const due = G.queue.find(q => q.due <= G.month);
+  if (due) { G.queue = G.queue.filter(q => q !== due); const s = findScenario(due.id); if (s) return { ...s, kind: 'queued' }; }
+  const waitUntil = G.flags.exp_wait || 0;
+  if (G.stage < 5 && G.cash >= expansionCost() && G.demand >= 50 + G.stage * 5 && G.rep >= 45 + G.stage * 5 && (G.stage === 0 || G.team >= 30 + G.stage * 8) && G.month >= waitUntil) return expansionScenario();
+
+  const recent = G.used.slice(-10);
+  let cands = allScenarios().filter(s => !s.queued && s.stage[0] <= G.stage && G.stage <= s.stage[1] && !recent.includes(s.id) && !(s.once && G.once.includes(s.id)) && (!s.when || s.when({ ...G, M: M() })));
+  if (!cands.length) cands = allScenarios().filter(s => !s.queued && !s.once);
+  const weighted = cands.map(s => {
+    let w = s.weight || 2;
+    const tags = s.tags || [];
+    if (tags.includes('cash') && G.cash < M() * 1.5) w *= 2.2;
+    if (tags.includes('energy') && G.energy < 40) w *= 2.5;
+    if (tags.includes('team') && G.team < 40 && G.stage >= 1) w *= 2.2;
+    if (tags.includes('demand') && G.demand < 45) w *= 2.2;
+    if (tags.includes('rep') && G.rep < 45) w *= 2;
+    if (C.BIZ[G.biz]?.includes(s)) w *= 1.4;
+    return { s, w };
+  });
+  const total = weighted.reduce((a, x) => a + x.w, 0);
+  let r = rnd() * total;
+  for (const x of weighted) { r -= x.w; if (r <= 0) return { ...x.s, kind: 'local' }; }
+  return { ...weighted[0].s, kind: 'local' };
+}
+
+/* ---------- Советник (локальный) ---------- */
+function advisorNote(rep) {
+  const notes = [];
+  if (rep.profit < 0) notes.push('Расходы выше выручки. Так можно жить недолго: либо больше клиентов, либо меньше расходов.');
+  if (G.demand < 40) notes.push('Спрос низкий. Клиенты не приходят сами — вложитесь в маркетинг или партнёрства.');
+  if (G.rep < 40) notes.push('Репутация проседает. Один хороший ответ на плохой отзыв стоит десяти реклам.');
+  if (G.team < 35 && G.stage >= 1) notes.push('Команда устала или слаба. Люди — это и есть ваш бизнес, поговорите с ними.');
+  if (G.energy < 35) notes.push('Вы выгораете. Делегируйте или отдохните, пока это ваш выбор, а не тела.');
+  if (G.cash < M()) notes.push('Денег меньше, чем на месяц работы. Подушка в 3 месяца расходов — минимум.');
+  if (!notes.length) {
+    const cost = expansionCost();
+    const needD = 50 + G.stage * 5, needR = 45 + G.stage * 5, needT = G.stage === 0 ? 0 : 30 + G.stage * 8;
+    if (G.stage < 5 && G.cash >= cost && (G.demand < needD || G.rep < needR || G.team < needT)) notes.push(`Деньги на рост есть (${money(cost)}), но бизнес не готов: нужны спрос ${needD}+, репутация ${needR}+${needT ? `, команда ${needT}+` : ''}.`);
+    else if (G.stage < 5 && G.cash >= cost * 0.6 && G.cash < cost) notes.push(`Вы близки к следующему шагу: на расширение нужно ${money(cost)}.`);
+    else notes.push(pick(['Дела идут ровно. Самое время укреплять то, что работает.', 'Хороший месяц. Помните: рост требует людей и процессов, а не только денег.', 'Стабильность — тоже результат. Но рынок не стоит на месте.', 'Прибыль есть. Часть отложите — следующий кризис уже в пути.']));
+  }
+  return notes.slice(0, 2).join(' ');
+}
+
+/* ---------- Живой ИИ (Claude) ---------- */
+let AnthropicSDK = null;
+const AI_SCHEMA = { type: 'object', additionalProperties: false, required: ['title', 'text', 'choices', 'advisor'],
+  properties: { title: { type: 'string' }, text: { type: 'string' }, advisor: { type: 'string' },
+    choices: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['label', 'effects', 'result', 'lesson'],
+      properties: { label: { type: 'string' }, result: { type: 'string' }, lesson: { type: 'string' },
+        effects: { type: 'object', additionalProperties: false, required: ['cash', 'demand', 'rep', 'team', 'energy'],
+          properties: { cash: { type: 'number' }, demand: { type: 'integer' }, rep: { type: 'integer' }, team: { type: 'integer' }, energy: { type: 'integer' } } } } } } } };
+const AI_SYSTEM = `Ты — игровой мастер обучающего бизнес-симулятора «Своё дело». Игрок развивает реальный тип бизнеса от стартапа до корпорации, принимая решения. Каждый ход ты придумываешь ОДНУ новую ситуацию с 2–3 вариантами решения и советом наставника.
+Правила:
+- Ситуация должна логически вытекать из состояния бизнеса и предыдущих решений игрока (учитывай историю, флаги, слабые показатели). Не повторяй уже сыгранные ситуации.
+- Пиши по-русски, живо и конкретно, с деталями именно этого типа бизнеса. Текст ситуации: 2–4 предложения. Обращайся к игроку на «вы».
+- Эффекты: cash — в месяцах постоянных расходов (от -2.0 до 2.0; -0.5 = минус половина месячных расходов), demand/rep/team/energy — от -20 до 20. У вариантов должны быть разные компромиссы: нет полностью правильного ответа, но плохие решения ведут к плохим последствиям.
+- result — что произошло после выбора (1–2 предложения). lesson — короткий урок о реальном бизнес-принципе (1–2 предложения), который игрок вынесет из этого выбора.
+- advisor — 1–2 предложения от наставника про текущее состояние бизнеса: на что обратить внимание в первую очередь.`;
+
+async function loadSDK() {
+  if (AnthropicSDK) return AnthropicSDK;
+  const mod = await import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm');
+  AnthropicSDK = mod.default || mod.Anthropic;
+  return AnthropicSDK;
+}
+
+async function aiScenario() {
+  const Anthropic = await loadSDK();
+  const client = new Anthropic({ apiKey: Settings.apiKey, dangerouslyAllowBrowser: true });
+  const b = biz(), eco = economy();
+  const state = {
+    business: G.custom || b.name, company: G.name, stage: stage().name, month: G.month, year: yearOf(G.month),
+    cash_in_months_of_costs: +(G.cash / M()).toFixed(2), cash: money(G.cash), monthly_costs: money(M()), last_month_profit: money(G.last ? G.last.profit : eco.profit),
+    demand: G.demand, reputation: G.rep, team: G.team, founder_energy: G.energy, flags: Object.keys(G.flags).filter(k => G.flags[k]),
+    recent_history: G.history.slice(-10).map(h => ({ month: h.month, situation: h.title, decision: h.choice, outcome: h.res })),
+    played_titles: G.history.slice(-30).map(h => h.title),
+  };
+  const res = await client.messages.create({
+    model: 'claude-opus-5', max_tokens: 4000, system: AI_SYSTEM,
+    messages: [{ role: 'user', content: 'Состояние игры:\n' + JSON.stringify(state, null, 1) + '\n\nПридумай следующую ситуацию.' }],
+    output_config: { format: { type: 'json_schema', schema: AI_SCHEMA }, effort: 'medium' },
+  });
+  if (res.stop_reason === 'refusal') throw new Error('Модель отказалась отвечать');
+  const text = res.content.find(bk => bk.type === 'text')?.text;
+  const data = JSON.parse(text);
+  const choices = data.choices.slice(0, 3).map(c => ({ t: c.label, fx: { cash: clamp(+c.effects.cash || 0, -2, 2), demand: clamp(c.effects.demand | 0, -20, 20), rep: clamp(c.effects.rep | 0, -20, 20), team: clamp(c.effects.team | 0, -20, 20), energy: clamp(c.effects.energy | 0, -20, 20) }, res: c.result, lesson: c.lesson }));
+  if (choices.length < 2) throw new Error('Мало вариантов');
+  G.aiUsed++;
+  return { id: 'ai_' + G.month, title: data.title, text: data.text, choices, advisor: data.advisor, kind: 'ai' };
+}
+
+function aiErrorText(e) {
+  const A = AnthropicSDK;
+  if (A && e instanceof A.AuthenticationError) return 'Неверный API-ключ. Проверьте его в настройках.';
+  if (A && e instanceof A.RateLimitError) return 'Слишком много запросов к ИИ. Подождите минуту.';
+  if (A && e instanceof A.APIError) return `Ошибка ИИ (${e.status}). Ситуацию подобрал встроенный режиссёр.`;
+  if (e instanceof SyntaxError) return 'ИИ ответил в неверном формате. Ситуацию подобрал встроенный режиссёр.';
+  return 'ИИ недоступен (нет сети или библиотека не загрузилась). Ситуацию подобрал встроенный режиссёр.';
+}
+
+/* ---------- Ход ---------- */
+function applyFx(fx) {
+  const chips = [];
+  const m = M();
+  if (fx.cashAbs) { G.cash += fx.cashAbs; chips.push(['Деньги', fx.cashAbs, money(fx.cashAbs)]); }
+  if (fx.cash) { const v = Math.round(fx.cash * m); G.cash += v; chips.push(['Деньги', v, money(v)]); }
+  for (const [k, label] of [['demand', 'Спрос'], ['rep', 'Репутация'], ['team', 'Команда'], ['energy', 'Энергия']]) {
+    if (fx[k]) { G[k] = clamp(G[k] + fx[k], 0, 100); chips.push([label, fx[k], (fx[k] > 0 ? '+' : '') + fx[k]]); }
+  }
+  return chips;
+}
+
+function choose(idx) {
+  const sc = G.current; if (!sc || G.phase !== 'choose') return;
+  const ch = sc.choices[idx];
+  const out = ch.outcomes ? weightedOutcome(ch.outcomes) : ch;
+  const chips = applyFx(out.fx || {});
+  if (sc.flags) sc.flags.forEach(f => { G.flags[f] = true; });
+  if (ch.flag) G.flags[ch.flag] = ch.flag === 'exp_wait' ? G.month + 6 : true;
+  if (ch.unflag) delete G.flags[ch.unflag];
+  const later = out.later || ch.later;
+  if (later) G.queue.push({ due: G.month + later.after, id: later.id });
+  if (sc.once) G.once.push(sc.id);
+  G.used.push(sc.id);
+  const lesson = out.lesson || ch.lesson;
+  G.history.push({ month: G.month, title: fill(sc.title), choice: ch.t, res: fill(out.res), ai: sc.kind === 'ai' });
+  if (lesson) G.lessons.push({ month: G.month, title: fill(sc.title), lesson: fill(lesson) });
+  let stagedUp = false;
+  if (ch.stageUp) { G.stage++; stagedUp = true; }
+
+  // Закрытие месяца
+  const eco = economy();
+  G.cash += eco.profit; G.totalRevenue += eco.revenue;
+  G.demand = clamp(G.demand + (G.demand > 50 ? -3 : G.demand > 38 ? -1 : 1) + (G.flags.online ? 1 : 0) + (G.flags.partner ? 1 : 0), 0, 100);
+  G.rep = clamp(G.rep + (G.rep > 55 ? -1 : 0) + (G.flags.culture ? 1 : 0), 0, 100);
+  G.team = clamp(G.team + (G.stage === 0 ? 0 : -1) + (G.flags.manager ? 1 : 0), 0, 100);
+  G.energy = clamp(G.energy - (G.stage <= 1 ? 5 : 3) + (G.flags.manager ? 3 : 0) + (G.flags.crm ? 1 : 0) + (G.flags.accountant ? 1 : 0), 0, 100);
+  G.last = eco;
+  G.negMonths = G.cash < 0 ? G.negMonths + 1 : 0;
+  G.month++;
+  G.phase = 'result';
+  G.result = { chips, res: fill(out.res), lesson: fill(lesson || ''), advisor: sc.advisor || advisorNote(eco), title: fill(sc.title), kind: sc.kind };
+
+  const cashChip = chips.find(c => c[0] === 'Деньги');
+  const positive = chips.reduce((a, c) => a + Math.sign(c[1]) * (c[0] === 'Деньги' ? 2 : 1), 0) >= 0;
+  positive ? Sound.good() : Sound.bad(); haptic(positive ? 10 : [20, 30, 20]);
+
+  if (ch.end === 'sold') { endGame('sold'); return; }
+  if (G.negMonths >= 2) { endGame('bankrupt'); return; }
+  if (stagedUp) {
+    if (G.stage === 5) { if (API.quiet) { endGame('corp'); return; } render(); confetti(220); setTimeout(() => endGame('corp'), 900); save(); return; }
+    if (!API.quiet) { showStage(); confetti(140); }
+  }
+  if (!API.quiet) { save(); render(); }
+}
+
+function weightedOutcome(outs) { let r = rnd(); for (const o of outs) { r -= o.p; if (r <= 0) return o; } return outs[outs.length - 1]; }
+
+async function nextMonth() {
+  if (G.phase !== 'choose' && G.phase !== 'result') return;
+  G.phase = 'loading'; render();
+  let sc = null;
+  const forced = G.cash < 0 || G.energy <= 5 || G.queue.some(q => q.due <= G.month);
+  if (Settings.ai && Settings.apiKey && !forced) {
+    try { sc = await aiScenario(); } catch (e) { console.warn(e); toast(aiErrorText(e)); }
+  }
+  if (!sc) sc = pickScenario();
+  G.current = sc; G.phase = 'choose'; save(); render();
+}
+
+function endGame(kind) {
+  G.ended = kind; G.phase = 'ended'; if (API.quiet) return; save();
+  const st = stage();
+  const map = {
+    bankrupt: ['💸', 'Бизнес закрыт', `${G.name} не выдержал второго месяца в минусе. Это не поражение, а опыт: ${G.lessons.length} уроков теперь ваши навсегда.`],
+    sold: ['🥂', 'Вы продали компанию', `${G.name} куплен крупным игроком. Вы построили с нуля бизнес, который стоит настоящих денег, и вышли из него на своих условиях.`],
+    corp: ['🚀', 'Корпорация!', `${G.name} — теперь компания национального масштаба. Вы прошли путь от одного человека до империи, и каждый шаг был вашим решением.`],
+  }[kind];
+  $('endIcon').textContent = map[0]; $('endTitle').textContent = map[1]; $('endText').textContent = map[2];
+  $('endMonths').textContent = G.month - 1; $('endStage').textContent = st.icon + ' ' + st.name;
+  $('endRevenue').textContent = money(G.totalRevenue); $('endLessons').textContent = G.lessons.length;
+  if (kind !== 'bankrupt') { Sound.stage(); confetti(260); } else Sound.bad();
+  show('s-end');
+}
+
+/* ---------- Рендер ---------- */
+function show(id) { for (const s of document.querySelectorAll('.screen')) s.classList.toggle('hidden', s.id !== id); window.scrollTo(0, 0); if (id !== 's-game') window.DeloCity.stop(); }
+
+function render() {
+  if (!G) return;
+  const b = biz(), st = stage();
+  $('coTitle').textContent = b.emoji + ' ' + G.name;
+  $('coSub').textContent = `${monthName(G.month)}, год ${yearOf(G.month)} · ${G.custom || b.name}`;
+  $('stageChip').textContent = st.icon + ' ' + st.name;
+  $('stageLine').innerHTML = C.STAGES.map((_, i) => `<i class="${i <= G.stage ? 'on' : ''}"></i>`).join('');
+  const cashEl = $('cash'); cashEl.textContent = money(G.cash); cashEl.classList.toggle('neg', G.cash < 0);
+  const p = G.last ? G.last.profit : economy().profit;
+  const pe = $('profit'); pe.textContent = (p >= 0 ? '+' : '') + money(p); pe.classList.toggle('neg', p < 0);
+  for (const k of ['demand', 'rep', 'team', 'energy']) {
+    const el = document.querySelector('.st.' + k); el.querySelector('b').textContent = G[k]; el.querySelector('i').style.width = G[k] + '%'; el.classList.toggle('low', G[k] < 30);
+  }
+  window.DeloCity.update(G, b, st);
+  const area = $('cardArea');
+  if (G.phase === 'loading') {
+    area.innerHTML = `<div class="card"><div class="kicker ai">ИИ думает</div><div class="thinking"><i></i><i></i><i></i>&nbsp; Claude придумывает, что случится с ${G.name} дальше…</div></div>`;
+  } else if (G.phase === 'choose' && G.current) {
+    const sc = G.current;
+    const kick = sc.kind === 'ai' ? '<span class="kicker ai">✦ ситуация от ИИ</span>' : sc.kind === 'expand' ? '<span class="kicker">решение о росте</span>' : sc.kind === 'crisis' ? '<span class="kicker" style="color:var(--red)">кризис</span>' : `<span class="kicker">${monthName(G.month)}, год ${yearOf(G.month)}</span>`;
+    area.innerHTML = `<div class="card">${kick}<h3>${esc(fill(sc.title))}</h3><p>${esc(fill(sc.text))}</p>
+      <div class="choices">${sc.choices.map((c, i) => `<button class="choice ${c.go ? 'go' : ''}" data-i="${i}"><span class="n">${i + 1}</span><span>${esc(fill(c.t))}</span></button>`).join('')}</div></div>`;
+    area.querySelectorAll('.choice').forEach(btn => btn.addEventListener('click', () => { Sound.tap(); choose(+btn.dataset.i); }));
+  } else if (G.phase === 'result' && G.result) {
+    const r = G.result, eco = G.last;
+    area.innerHTML = `<div class="card result"><span class="kicker">${esc(r.title)}</span><p style="margin-top:8px">${esc(r.res)}</p>
+      <div class="fxs">${r.chips.map(c => `<span class="chip ${c[1] > 0 ? 'up' : 'down'}">${c[0]} ${c[2]}</span>`).join('') || '<span class="chip">без изменений</span>'}</div>
+      ${r.lesson ? `<div class="lesson"><b>💡 Урок</b>${esc(r.lesson)}</div>` : ''}
+      <div class="report"><div class="row"><span>Клиентов (${biz().unit})</span><span>${eco.customers.toLocaleString('ru-RU')}</span></div>
+        <div class="row"><span>Выручка</span><span>${money(eco.revenue)}</span></div>
+        <div class="row"><span>Расходы</span><span>−${money(eco.expenses)}</span></div>
+        <div class="row total"><span>Прибыль за ${monthName(G.month - 1)}</span><span style="color:${eco.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${(eco.profit >= 0 ? '+' : '') + money(eco.profit)}</span></div></div>
+      <div class="advisor"><div class="av">${r.kind === 'ai' ? '✦' : '🧭'}</div><div><b style="font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Наставник</b><br>${esc(r.advisor)}</div></div>
+      <button class="next" id="btnNext">Следующий месяц →</button></div>`;
+    $('btnNext').addEventListener('click', () => { Sound.tap(); nextMonth(); });
+  }
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function showStage() {
+  const st = stage(); $('stageIcon').textContent = st.icon; $('stageName').textContent = st.name; $('stageDesc').textContent = st.desc;
+  $('m-stage').classList.remove('hidden'); Sound.stage(); haptic([30, 50, 30, 50, 80]);
+}
+function renderJournal() {
+  const list = $('journalList');
+  list.innerHTML = G && G.lessons.length ? G.lessons.slice().reverse().map(l => `<div class="jl"><b>${esc(l.title)} · месяц ${l.month}</b>${esc(l.lesson)}</div>`).join('') : '<div class="jl">Пока пусто. Уроки появляются после каждого решения.</div>';
+}
+
+/* ---------- Конфетти ---------- */
+const fx = $('fx'), fctx = fx.getContext('2d'); let parts = [];
+function sizeFx() { fx.width = innerWidth * devicePixelRatio; fx.height = innerHeight * devicePixelRatio; fctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); }
+sizeFx(); addEventListener('resize', sizeFx);
+function confetti(n) {
+  const cols = ['#ffd166', '#ffb17a', '#6ee7b7', '#7ee8ff', '#b69cff', '#ff7b9c', '#fff'];
+  for (let i = 0; i < n; i++) parts.push({ x: innerWidth / 2 + (rnd() - .5) * 80, y: innerHeight * .4, vx: (rnd() - .5) * 700, vy: -rnd() * 700 - 200, r: rnd() * 5 + 3, c: pick(cols), a: rnd() * 6, va: (rnd() - .5) * 10, life: 1 });
+  if (parts.length === n) requestAnimationFrame(tickFx);
+}
+let lastT = 0;
+function tickFx(t) {
+  const dt = Math.min(.04, (t - lastT) / 1000 || .016); lastT = t;
+  fctx.clearRect(0, 0, innerWidth, innerHeight);
+  for (const p of parts) { p.vy += 900 * dt; p.vx *= .99; p.x += p.vx * dt; p.y += p.vy * dt; p.a += p.va * dt; p.life -= dt * .45;
+    fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.a); fctx.globalAlpha = Math.max(0, p.life); fctx.fillStyle = p.c; fctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); fctx.restore(); }
+  parts = parts.filter(p => p.life > 0 && p.y < innerHeight + 20);
+  if (parts.length) requestAnimationFrame(tickFx); else fctx.clearRect(0, 0, innerWidth, innerHeight);
+}
+
+let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4200); }
+
+/* ---------- Экран выбора ---------- */
+let pickedBiz = null;
+function renderPick() {
+  $('bizGrid').innerHTML = C.BUSINESSES.map(b => `<button class="biz" data-id="${b.id}"><div class="e">${b.emoji}</div><b>${b.name}</b><span>${b.desc}</span><span style="color:var(--gold)">сложность: ${b.diff}</span></button>`).join('');
+  $('bizGrid').querySelectorAll('.biz').forEach(btn => btn.addEventListener('click', () => {
+    pickedBiz = btn.dataset.id; Sound.tap(); haptic(6);
+    $('bizGrid').querySelectorAll('.biz').forEach(x => x.classList.toggle('sel', x === btn));
+    $('customField').classList.toggle('hidden', pickedBiz !== 'custom');
+    validatePick();
+  }));
+}
+function validatePick() { const ok = pickedBiz && $('coName').value.trim().length > 0 && (pickedBiz !== 'custom' || $('customText').value.trim().length > 3); $('btnStart').toggleAttribute('disabled', !ok); }
+$('coName').addEventListener('input', validatePick); $('customText').addEventListener('input', validatePick);
+
+$('btnNew').addEventListener('click', () => { Sound.tap(); show('s-pick'); });
+$('btnBack').addEventListener('click', () => show('s-start'));
+$('btnStart').addEventListener('click', () => {
+  Sound.tap(); newGame(pickedBiz, $('coName').value.trim(), pickedBiz === 'custom' ? $('customText').value.trim() : '');
+  show('s-game'); render();
+});
+$('btnContinue').addEventListener('click', () => { Sound.tap(); if (G.ended) endGame(G.ended); else { show('s-game'); render(); } });
+$('btnRestart').addEventListener('click', () => { G = null; try { localStorage.removeItem(SAVE_KEY); } catch (e) {} show('s-pick'); });
+$('btnEndJournal').addEventListener('click', () => { renderJournal(); $('m-journal').classList.remove('hidden'); });
+$('btnJournal').addEventListener('click', () => { renderJournal(); $('m-journal').classList.remove('hidden'); });
+$('btnSettings').addEventListener('click', () => $('m-settings').classList.remove('hidden'));
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $(b.dataset.close).classList.add('hidden')));
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
+
+/* ---------- Настройки ---------- */
+$('swAI').classList.toggle('on', Settings.ai); $('apiKey').value = Settings.apiKey || ''; $('swSound').classList.toggle('on', Settings.sound !== false); Sound.on = Settings.sound !== false;
+$('swAI').addEventListener('click', () => {
+  if (!Settings.ai && !$('apiKey').value.trim()) { toast('Сначала вставьте API-ключ Anthropic'); return; }
+  Settings.ai = !Settings.ai; $('swAI').classList.toggle('on', Settings.ai); saveSettings();
+  toast(Settings.ai ? 'Живой ИИ включён: следующая ситуация будет от Claude' : 'Живой ИИ выключен');
+});
+$('apiKey').addEventListener('change', () => { Settings.apiKey = $('apiKey').value.trim(); saveSettings(); });
+$('swSound').addEventListener('click', () => { Settings.sound = !Settings.sound; Sound.on = Settings.sound; $('swSound').classList.toggle('on', Settings.sound); saveSettings(); });
+$('btnReset').addEventListener('click', () => { if (!confirm('Удалить текущую игру?')) return; G = null; try { localStorage.removeItem(SAVE_KEY); } catch (e) {} $('m-settings').classList.add('hidden'); show('s-start'); $('btnContinue').classList.add('hidden'); });
+
+/* ---------- Старт ---------- */
+renderPick();
+window.DeloCity.init($('city'));
+const saved = loadSave();
+if (saved && saved.month) { G = saved; $('btnContinue').classList.remove('hidden'); $('btnContinue').textContent = `Продолжить: ${G.name}, месяц ${G.month}`; }
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+Object.defineProperty(API, 'G', { get: () => G });
+Object.assign(API, { newGame, choose, nextMonth, pickScenario, economy, M, expansionCost, render, Settings, aiScenario });
+window.__delo = API;
+})();
+</script>
+</body>
+</html>
